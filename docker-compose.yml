@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # === TESTING ENVIRONMENT ===
+  test-mongo:
+    image: mongo:6
+    container_name: test-mongo
+    ports:
+      - "27017:27017"  # Accessible externally from localhost:27017
+    volumes:
+      - ./mongo/test-init:/docker-entrypoint-initdb.d:ro
+      - test-mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  test-backend:
+    build: ./backend
+    container_name: test-backend
+    ports:
+      - "3001:3000"  # Host:Container
+    environment:
+      NODE_ENV: test
+      MONGO_URL: mongodb://root:example@test-mongo:27017/testdb?authSource=admin
+    depends_on:
+      - test-mongo
+
+  test-frontend:
+    build: ./frontend
+    container_name: test-frontend
+    ports:
+      - "4201:80"
+    depends_on:
+      - test-backend
+
+  # === PRODUCTION ENVIRONMENT ===
+  prod-mongo:
+    image: mongo:6
+    container_name: prod-mongo
+    ports:
+      - "27018:27017"  # Expose on host:27018
+    volumes:
+      - ./mongo/prod-init:/docker-entrypoint-initdb.d:ro
+      - prod-mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  prod-backend:
+    build: ./backend
+    container_name: prod-backend
+    ports:
+      - "3002:3000"
+    environment:
+      NODE_ENV: production
+      MONGO_URL: mongodb://root:example@prod-mongo:27017/proddb?authSource=admin
+    depends_on:
+      - prod-mongo
+
+  prod-frontend:
+    build: ./frontend
+    container_name: prod-frontend
+    ports:
+      - "4202:80"
+    depends_on:
+      - prod-backend
+
+volumes:
+  test-mongo-data:
+  prod-mongo-data:
